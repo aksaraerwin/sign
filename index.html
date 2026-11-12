@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>make.fun payout delegation — sign once</title>
+<style>body{font-family:system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px;line-height:1.5;color:#111}
+code,textarea{word-break:break-all}textarea{width:100%}button{padding:10px 18px;font-size:16px;cursor:pointer}
+.msg{background:#f4f4f5;border:1px solid #ddd;border-radius:8px;padding:12px;font-family:monospace;font-size:13px;word-break:break-all}
+.warn{background:#fff7e6;border:1px solid #f0c36d;border-radius:8px;padding:10px 12px}</style></head>
+<body>
+<h2>make.fun payout delegation</h2>
+<p>This page asks your Phantom wallet to sign <b>one message</b> (no transaction, no fee, nothing is sent anywhere). The signature only authorises make.fun to pay prizes to <b>your</b> wallet. Compare the message below with the line Muse sent you in chat — sign only if they match exactly.</p>
+<div class="msg" id="msg"></div>
+<p class="warn">Never type your seed phrase or password into any page — this page never asks for them. If Phantom shows anything other than a message-signing request for the text above, cancel.</p>
+<button id="sign">Connect Phantom &amp; Sign</button>
+<p id="status"></p>
+<h3>Your signature (copy this back to Muse):</h3>
+<textarea id="sig" rows="3" readonly placeholder="The base58 signature will appear here"></textarea>
+<button id="copy">Copy signature</button>
+<script>
+const MESSAGE = "make.fun delegation v1; Domain: make.fun; Payout: CzHPVWuB5zS7ZGKSyxd4ZTSYNSTyHDhduHGfsq9KGT1k; Agent: D8WPUDXowBmVN1iNamRHURYhPGjE27HDUCAiqPbf35dN; Competitions: *; Nonce: e1330c7842ac3094e17fefff2b10c0bd; Issued At: 2026-11-12T06:30:26.417Z; Expiration Time: 2027-02-10T06:30:26.417Z";
+document.getElementById('msg').textContent = MESSAGE;
+const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+function base58(bytes){let zeros=0;while(zeros<bytes.length&&bytes[zeros]===0)zeros++;
+  const digits=[0];for(let i=zeros;i<bytes.length;i++){let carry=bytes[i];for(let j=0;j<digits.length;j++){carry+=digits[j]<<8;digits[j]=carry%58;carry=(carry/58)|0;}while(carry){digits.push(carry%58);carry=(carry/58)|0;}}
+  let out='1'.repeat(zeros);for(let i=digits.length-1;i>=0;i--)out+=ALPHABET[digits[i]];return out;}
+document.getElementById('sign').onclick = async () => {
+  const st = document.getElementById('status');
+  try{
+    const provider = window.phantom && window.phantom.solana ? window.phantom.solana : window.solana;
+    if(!provider || !provider.isPhantom){ st.textContent = 'Phantom not found in this browser. Open this page in the browser where Phantom is installed.'; return; }
+    await provider.connect();
+    const data = new TextEncoder().encode(MESSAGE);
+    const res = await provider.signMessage(data, 'utf8');
+    document.getElementById('sig').value = base58(res.signature);
+    st.textContent = 'Signed with wallet ' + res.publicKey.toString() + ' — copy the signature above and paste it to Muse.';
+  }catch(e){ st.textContent = 'Error: ' + (e && e.message ? e.message : e); }
+};
+document.getElementById('copy').onclick = () => { const t=document.getElementById('sig'); t.select(); document.execCommand('copy'); };
+</script></body></html>
